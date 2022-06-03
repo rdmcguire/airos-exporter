@@ -154,6 +154,44 @@ var (
 		Name: "airos_wireless_station_count",
 		Help: "Count of Association Stations",
 	}, []string{"device"})
+
+	//
+	// AirOS Station Metrics
+	airosSTALabels = []string{
+		"device",
+		"remote_device",
+	}
+	airosSTAInfoLabels = []string{
+		"device",
+		"remote_device",
+		"remote_id",
+		"remote_model",
+		"remote_version",
+		"remote_mode",
+		"remote_net_role",
+		"remote_mac",
+		"remote_ip",
+	}
+	airosSTAInfo = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_info",
+		Help: "Info table for AirOS Remote Station",
+	}, airosSTAInfoLabels)
+	airosSTASignal = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_signal",
+		Help: "Station Signal",
+	}, airosSTALabels)
+	airosSTARSSI = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_rssi",
+		Help: "Station Received Signal Strength Indicator",
+	}, airosSTALabels)
+	airosSTANoiseFloor = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_noise_floor",
+		Help: "Station Noise Floor",
+	}, airosSTALabels)
+	airosSTATxLatency = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_tx_latency_ms",
+		Help: "Station Transmit Latency (ms)",
+	}, airosSTALabels)
 )
 
 // Updates all Prometheus Metrics
@@ -290,6 +328,28 @@ func updatePromMetrics(s *airosStatus) {
 	airosWLSTACount.WithLabelValues(device).Set(float64(s.Wireless.STACount))
 
 	// Associated Station Metrics
+	for _, r := range s.Wireless.Stations {
+		// Common labels
+		staLabels := prometheus.Labels{
+			"device":        s.Host.HostName,
+			"remote_device": r.Remote.HostName,
+		}
+		airosSTAInfo.With(prometheus.Labels{
+			"device":          s.Host.HostName,
+			"remote_device":   r.Remote.HostName,
+			"remote_id":       r.Remote.DeviceID,
+			"remote_model":    r.Remote.Platform,
+			"remote_version":  r.Remote.Version,
+			"remote_mode":     r.Remote.Mode,
+			"remote_net_role": r.Remote.NetRole,
+			"remote_mac":      r.MAC,
+			"remote_ip":       r.LastIP,
+		}).Set(1)
+		airosSTASignal.With(staLabels).Set(float64(r.Signal))
+		airosSTARSSI.With(staLabels).Set(float64(r.RSSI))
+		airosSTANoiseFloor.With(staLabels).Set(float64(r.NoiseFloor))
+		airosSTATxLatency.With(staLabels).Set(float64(r.TXLatency))
+	}
 }
 
 // Starts listener at listenAddr and services at /metrics
