@@ -14,7 +14,7 @@ using the -envFile flag.
 ### Parameters
 
 ```
-Usage of /tmp/go-build605039916/b001/exe/airos-stats:
+Usage of airos-stats:
   -device value
     	IP or FQDN of AirOS Device, specify more than once for multiple
   -envFile string
