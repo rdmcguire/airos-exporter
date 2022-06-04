@@ -121,7 +121,7 @@ var (
 	airosWLTput = metrics.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "airos_wireless_throughput_kbps",
 		Help: "Wireless Transmit Throughput (kbps)",
-	}, []string{"device", "diretion"})
+	}, []string{"device", "direction"})
 	airosWLSvcTime = metrics.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "airos_wireless_service_time_s",
 		Help: "Wireless Service Time (s)",
