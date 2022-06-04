@@ -118,14 +118,10 @@ var (
 		Name: "airos_wireless_tx_power_dbm",
 		Help: "Wireless Transmit Power (dBm)",
 	}, []string{"device"})
-	airosWLTputTX = metrics.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "airos_wireless_throughput_tx_kbps",
+	airosWLTput = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_wireless_throughput_kbps",
 		Help: "Wireless Transmit Throughput (kbps)",
-	}, []string{"device"})
-	airosWLTputRX = metrics.NewGaugeVec(prometheus.GaugeOpts{
-		Name: "airos_wireless_throughput_rx_kbps",
-		Help: "Wireless Receive Throughput (kbps)",
-	}, []string{"device"})
+	}, []string{"device", "diretion"})
 	airosWLSvcTime = metrics.NewGaugeVec(prometheus.GaugeOpts{
 		Name: "airos_wireless_service_time_s",
 		Help: "Wireless Service Time (s)",
@@ -192,6 +188,46 @@ var (
 		Name: "airos_sta_tx_latency_ms",
 		Help: "Station Transmit Latency (ms)",
 	}, airosSTALabels)
+	airosSTAUptime = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_uptime_s",
+		Help: "Station Uptime (s)",
+	}, airosSTALabels)
+	airosSTABytes = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_bytes",
+		Help: "Station Bytes",
+	}, append(airosSTALabels, "direction"))
+	airosSTAPackets = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_packets",
+		Help: "Station Packets",
+	}, append(airosSTALabels, "direction"))
+	airosSTAPPS = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_pps",
+		Help: "Station Packets Per Second",
+	}, append(airosSTALabels, "direction"))
+	airosSTAPriority = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_priority",
+		Help: "Station Actual Priority",
+	}, airosSTALabels)
+	airosSTACBCap = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_cb_capacity",
+		Help: "Station CB Capacity",
+	}, airosSTALabels)
+	airosSTADLCap = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_dl_capacity",
+		Help: "Station DL Capacity",
+	}, airosSTALabels)
+	airosSTAULCap = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_ul_capacity",
+		Help: "Station UL Capacity",
+	}, airosSTALabels)
+	airosSTAUsage = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_chain_usage",
+		Help: "Station Chain Usage",
+	}, append(airosSTALabels, "direction"))
+	airosSTACINR = metrics.NewGaugeVec(prometheus.GaugeOpts{
+		Name: "airos_sta_cinr",
+		Help: "Station CINR (SNR)",
+	}, append(airosSTALabels, "direction"))
 )
 
 // Updates all Prometheus Metrics
@@ -254,47 +290,25 @@ func updatePromMetrics(s *airosStatus) {
 			"status":  status,
 			"duplex":  duplex,
 		}
+		ifLabelsTX := prometheus.Labels{
+			"device":    s.Host.HostName,
+			"if_name":   i.IFName,
+			"direction": "tx",
+		}
+		ifLabelsRX := prometheus.Labels{
+			"device":    s.Host.HostName,
+			"if_name":   i.IFName,
+			"direction": "rx",
+		}
 		airosIfMTU.With(ifLabels).Set(float64(i.MTU))
-		airosIfBytes.With(prometheus.Labels{
-			"device":    s.Host.HostName,
-			"if_name":   i.IFName,
-			"direction": "tx",
-		}).Set(float64(i.Status.TXBytes))
-		airosIfBytes.With(prometheus.Labels{
-			"device":    s.Host.HostName,
-			"if_name":   i.IFName,
-			"direction": "rx",
-		}).Set(float64(i.Status.RXBytes))
-		airosIfPkts.With(prometheus.Labels{
-			"device":    s.Host.HostName,
-			"if_name":   i.IFName,
-			"direction": "tx",
-		}).Set(float64(i.Status.TXPackets))
-		airosIfPkts.With(prometheus.Labels{
-			"device":    s.Host.HostName,
-			"if_name":   i.IFName,
-			"direction": "rx",
-		}).Set(float64(i.Status.RXPackets))
-		airosIfErrors.With(prometheus.Labels{
-			"device":    s.Host.HostName,
-			"if_name":   i.IFName,
-			"direction": "tx",
-		}).Set(float64(i.Status.TXErrors))
-		airosIfErrors.With(prometheus.Labels{
-			"device":    s.Host.HostName,
-			"if_name":   i.IFName,
-			"direction": "rx",
-		}).Set(float64(i.Status.RXErrors))
-		airosIfDropped.With(prometheus.Labels{
-			"device":    s.Host.HostName,
-			"if_name":   i.IFName,
-			"direction": "tx",
-		}).Set(float64(i.Status.TXDropped))
-		airosIfDropped.With(prometheus.Labels{
-			"device":    s.Host.HostName,
-			"if_name":   i.IFName,
-			"direction": "rx",
-		}).Set(float64(i.Status.RXDropped))
+		airosIfBytes.With(ifLabelsTX).Set(float64(i.Status.TXBytes))
+		airosIfBytes.With(ifLabelsRX).Set(float64(i.Status.RXBytes))
+		airosIfPkts.With(ifLabelsTX).Set(float64(i.Status.TXPackets))
+		airosIfPkts.With(ifLabelsRX).Set(float64(i.Status.RXPackets))
+		airosIfErrors.With(ifLabelsTX).Set(float64(i.Status.TXErrors))
+		airosIfErrors.With(ifLabelsRX).Set(float64(i.Status.RXErrors))
+		airosIfDropped.With(ifLabelsTX).Set(float64(i.Status.TXDropped))
+		airosIfDropped.With(ifLabelsRX).Set(float64(i.Status.RXDropped))
 		airosIfCblLen.WithLabelValues(s.Host.HostName, i.IFName).Set(float64(i.Status.CableLength))
 		// Average Cable SNR Values
 		if len(i.Status.SNR) > 0 {
@@ -315,8 +329,8 @@ func updatePromMetrics(s *airosStatus) {
 	airosWLFreq.WithLabelValues(device).Set(float64(s.Wireless.Frequency))
 	airosWLDistance.WithLabelValues(device).Set(float64(s.Wireless.Distance))
 	airosWLTXPower.WithLabelValues(device).Set(float64(s.Wireless.TXPower))
-	airosWLTputTX.WithLabelValues(device).Set(float64(s.Wireless.Throughput.TX))
-	airosWLTputRX.WithLabelValues(device).Set(float64(s.Wireless.Throughput.RX))
+	airosWLTput.WithLabelValues(device, "tx").Set(float64(s.Wireless.Throughput.TX))
+	airosWLTput.WithLabelValues(device, "rx").Set(float64(s.Wireless.Throughput.RX))
 	airosWLSvcTime.WithLabelValues(device).Set(float64(s.Wireless.Service.Time))
 	airosWLLinkTime.WithLabelValues(device).Set(float64(s.Wireless.Service.Link))
 	// Calculate service availability ratio
@@ -334,6 +348,16 @@ func updatePromMetrics(s *airosStatus) {
 			"device":        s.Host.HostName,
 			"remote_device": r.Remote.HostName,
 		}
+		staLabelsTX := prometheus.Labels{
+			"device":        s.Host.HostName,
+			"remote_device": r.Remote.HostName,
+			"direction":     "tx",
+		}
+		staLabelsRX := prometheus.Labels{
+			"device":        s.Host.HostName,
+			"remote_device": r.Remote.HostName,
+			"direction":     "rx",
+		}
 		airosSTAInfo.With(prometheus.Labels{
 			"device":          s.Host.HostName,
 			"remote_device":   r.Remote.HostName,
@@ -349,6 +373,21 @@ func updatePromMetrics(s *airosStatus) {
 		airosSTARSSI.With(staLabels).Set(float64(r.RSSI))
 		airosSTANoiseFloor.With(staLabels).Set(float64(r.NoiseFloor))
 		airosSTATxLatency.With(staLabels).Set(float64(r.TXLatency))
+		airosSTAUptime.With(staLabels).Set(float64(r.Uptime))
+		airosSTABytes.With(staLabelsTX).Set(float64(r.Stats.TXBytes))
+		airosSTABytes.With(staLabelsRX).Set(float64(r.Stats.RXBytes))
+		airosSTAPackets.With(staLabelsTX).Set(float64(r.Stats.TXPackets))
+		airosSTAPackets.With(staLabelsRX).Set(float64(r.Stats.RXPackets))
+		airosSTAPPS.With(staLabelsTX).Set(float64(r.Stats.TXPPS))
+		airosSTAPPS.With(staLabelsRX).Set(float64(r.Stats.RXPPS))
+		airosSTAPriority.With(staLabels).Set(float64(r.AirMax.ActualPriority))
+		airosSTACBCap.With(staLabels).Set(float64(r.AirMax.CBCapacity))
+		airosSTADLCap.With(staLabels).Set(float64(r.AirMax.DLCapacity))
+		airosSTAULCap.With(staLabels).Set(float64(r.AirMax.ULCapacity))
+		airosSTAUsage.With(staLabelsTX).Set(float64(r.AirMax.TX.Usage))
+		airosSTAUsage.With(staLabelsRX).Set(float64(r.AirMax.RX.Usage))
+		airosSTACINR.With(staLabelsTX).Set(float64(r.AirMax.TX.CINR))
+		airosSTACINR.With(staLabelsRX).Set(float64(r.AirMax.RX.CINR))
 	}
 }
 
